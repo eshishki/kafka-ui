@@ -49,24 +49,24 @@ describe('Schema compatibility form', () => {
     });
   });
 
-  it('displays an existing ICEBERG subject without making it dirty', () => {
-    renderForm('ICEBERG');
-    expect(screen.getByText('ICEBERG')).toBeInTheDocument();
+  it('displays an existing CUSTOM_MODE subject without making it dirty', () => {
+    renderForm('CUSTOM_MODE');
+    expect(screen.getByText('CUSTOM_MODE')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Submit' })).toBeDisabled();
     expect(update).not.toHaveBeenCalled();
   });
 
-  it('submits ICEBERG for a subject without registering a new schema', async () => {
-    renderForm('BACKWARD');
+  it('changes an unknown mode to a standard mode without registering a new schema', async () => {
+    renderForm('CUSTOM_MODE');
     const dropdown = screen.getAllByRole('listbox')[1];
     await userEvent.click(within(dropdown).getByRole('option'));
-    await userEvent.click(within(dropdown).getByText('ICEBERG'));
+    await userEvent.click(within(dropdown).getByText('BACKWARD'));
     await userEvent.click(screen.getByRole('button', { name: 'Submit' }));
     await waitFor(() =>
       expect(update).toHaveBeenCalledWith(
         expect.objectContaining({
           subject: 'orders-value',
-          compatibilityLevel: { compatibility: 'ICEBERG' },
+          compatibilityLevel: { compatibility: 'BACKWARD' },
         })
       )
     );

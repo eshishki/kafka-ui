@@ -1,7 +1,6 @@
 import React from 'react';
-import { screen, waitFor, within } from '@testing-library/react';
+import { screen, waitFor, within, cleanup } from '@testing-library/react';
 import { render, WithRoute } from 'lib/testHelpers';
-import { CompatibilityLevelCompatibilityEnum } from 'generated-sources';
 import GlobalSchemaSelector from 'components/Schemas/List/GlobalSchemaSelector/GlobalSchemaSelector';
 import userEvent from '@testing-library/user-event';
 import { clusterSchemasPath } from 'lib/paths';
@@ -16,11 +15,7 @@ const selectForwardOption = async () => {
   const dropdownElement = screen.getByRole('listbox');
   // clicks to open dropdown
   await userEvent.click(within(dropdownElement).getByRole('option'));
-  await userEvent.click(
-    within(dropdownElement).getByText(
-      CompatibilityLevelCompatibilityEnum.FORWARD
-    )
-  );
+  await userEvent.click(within(dropdownElement).getByText('FORWARD'));
 };
 
 const expectOptionIsSelected = (option: string) => {
@@ -56,7 +51,7 @@ describe('GlobalSchemaSelector', () => {
       })
     );
     (useGetGlobalCompatibilityLayer as jest.Mock).mockImplementation(() => ({
-      data: { compatibility: CompatibilityLevelCompatibilityEnum.FULL },
+      data: { compatibility: 'FULL' },
       isFetching: false,
     }));
 
@@ -64,11 +59,11 @@ describe('GlobalSchemaSelector', () => {
   });
 
   it('renders with initial prop', () => {
-    expectOptionIsSelected(CompatibilityLevelCompatibilityEnum.FULL);
+    expectOptionIsSelected('FULL');
   });
 
   it('shows popup when select value is changed', async () => {
-    expectOptionIsSelected(CompatibilityLevelCompatibilityEnum.FULL);
+    expectOptionIsSelected('FULL');
     await selectForwardOption();
     expect(screen.getByText('Confirm the action')).toBeInTheDocument();
   });
@@ -77,19 +72,18 @@ describe('GlobalSchemaSelector', () => {
     await selectForwardOption();
     await userEvent.click(screen.getByText('Cancel'));
     expect(screen.queryByText('Confirm the action')).not.toBeInTheDocument();
-    expectOptionIsSelected(CompatibilityLevelCompatibilityEnum.FULL);
+    expectOptionIsSelected('FULL');
   });
 
-  it('offers ICEBERG and submits it after confirmation', async () => {
-    const dropdown = screen.getByRole('listbox');
-    await userEvent.click(within(dropdown).getByRole('option'));
-    await userEvent.click(within(dropdown).getByText('ICEBERG'));
-    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    await waitFor(() =>
-      expect(updateMockFn).toHaveBeenCalledWith({
-        compatibilityLevel: { compatibility: 'ICEBERG' },
-      })
-    );
+  it('displays an unknown Registry mode without changing it', () => {
+    cleanup();
+    (useGetGlobalCompatibilityLayer as jest.Mock).mockReturnValue({
+      data: { compatibility: 'CUSTOM_MODE' },
+      isFetching: false,
+    });
+    renderComponent();
+    expectOptionIsSelected('CUSTOM_MODE');
+    expect(updateMockFn).not.toHaveBeenCalled();
   });
 
   it('sets new schema when confirm is clicked', async () => {
@@ -107,7 +101,7 @@ describe('GlobalSchemaSelector', () => {
 
     // TODO this should be checked later not that important working as expected
     // await waitFor(() =>
-    //   expectOptionIsSelected(CompatibilityLevelCompatibilityEnum.FORWARD)
+    //   expectOptionIsSelected('FORWARD')
     // );
   });
 });

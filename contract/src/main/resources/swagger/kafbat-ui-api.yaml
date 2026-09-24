@@ -3560,15 +3560,7 @@ components:
       properties:
         compatibility:
           type: string
-          enum:
-            - BACKWARD
-            - BACKWARD_TRANSITIVE
-            - FORWARD
-            - FORWARD_TRANSITIVE
-            - FULL
-            - FULL_TRANSITIVE
-            - ICEBERG
-            - NONE
+          description: Compatibility mode returned by the Schema Registry.
       required:
         - compatibility
 

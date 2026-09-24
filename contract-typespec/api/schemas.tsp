@@ -159,15 +159,8 @@ model NewSchemaSubject {
 }
 
 model CompatibilityLevel {
-  compatibility:
-    | "BACKWARD"
-    | "BACKWARD_TRANSITIVE"
-    | "FORWARD"
-    | "FORWARD_TRANSITIVE"
-    | "FULL"
-    | "FULL_TRANSITIVE"
-    | "ICEBERG"
-    | "NONE";
+  @doc("Compatibility mode returned by the Schema Registry.")
+  compatibility: string;
 }
 
 model CompatibilityCheckResponse {

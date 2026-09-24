@@ -5,12 +5,10 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import com.fasterxml.jackson.databind.json.JsonMapper;
-import io.kafbat.ui.mapper.KafkaSrMapper;
 import io.kafbat.ui.model.CompatibilityLevelDTO;
 import io.kafbat.ui.model.KafkaCluster;
 import io.kafbat.ui.sr.ApiClient;
 import io.kafbat.ui.sr.api.KafkaSrClientApi;
-import io.kafbat.ui.sr.model.Compatibility;
 import io.kafbat.ui.util.ReactiveFailover;
 import io.kafbat.ui.util.WebClientConfigurator;
 import java.io.IOException;
@@ -21,14 +19,12 @@ import okhttp3.mockwebserver.MockWebServer;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mapstruct.factory.Mappers;
 import org.springframework.http.MediaType;
 
-class SchemaRegistryIcebergCompatibilityTest {
+class SchemaRegistryCustomCompatibilityTest {
 
   private static final Duration TIMEOUT = Duration.ofSeconds(5);
   private final MockWebServer registry = new MockWebServer();
-  private final KafkaSrMapper mapper = Mappers.getMapper(KafkaSrMapper.class);
   private SchemaRegistryService service;
   private KafkaCluster cluster;
 
@@ -58,55 +54,51 @@ class SchemaRegistryIcebergCompatibilityTest {
   }
 
   @Test
-  void readsIcebergGlobalCompatibilityAndMapsToUi() {
-    respond("{\"compatibilityLevel\":\"ICEBERG\"}");
+  void readsCustomGlobalCompatibilityAndMapsToUi() {
+    respond("{\"compatibilityLevel\":\"CUSTOM_MODE\"}");
     var level = service.getGlobalSchemaCompatibilityLevel(cluster).block(TIMEOUT);
-    assertThat(level).isEqualTo(Compatibility.ICEBERG);
-    assertThat(mapper.toDto(level)).isEqualTo(CompatibilityLevelDTO.CompatibilityEnum.ICEBERG);
+    assertThat(level).isEqualTo("CUSTOM_MODE");
   }
 
   @Test
-  void readsIcebergSubjectCompatibilityWithoutDiscardingIt() {
-    respond("{\"compatibilityLevel\":\"ICEBERG\"}");
+  void readsCustomSubjectCompatibilityWithoutDiscardingIt() {
+    respond("{\"compatibilityLevel\":\"CUSTOM_MODE\"}");
     // An unknown enum used to be swallowed here, triggering the global BACKWARD fallback.
     assertThat(service.getSchemaCompatibilityLevel(cluster, "orders-value").block(TIMEOUT))
-        .isEqualTo(Compatibility.ICEBERG);
+        .isEqualTo("CUSTOM_MODE");
     assertThat(registry.getRequestCount()).isEqualTo(1);
   }
 
   @Test
-  void sendsIcebergSubjectUpdateFromUiDto() throws Exception {
-    respond("{\"compatibility\":\"ICEBERG\"}");
-    var dto = new JsonMapper().readValue("{\"compatibility\":\"ICEBERG\"}", CompatibilityLevelDTO.class);
-    service.updateSchemaCompatibility(cluster, "orders-value", mapper.fromDto(dto.getCompatibility()))
+  void sendsCustomSubjectUpdateFromUiDto() throws Exception {
+    respond("{\"compatibility\":\"CUSTOM_MODE\"}");
+    var dto = new JsonMapper().readValue("{\"compatibility\":\"CUSTOM_MODE\"}", CompatibilityLevelDTO.class);
+    service.updateSchemaCompatibility(cluster, "orders-value", dto.getCompatibility())
         .block(TIMEOUT);
     var request = registry.takeRequest(5, TimeUnit.SECONDS);
     assertThat(request).isNotNull();
     assertThat(request.getMethod()).isEqualTo("PUT");
     assertThat(request.getPath()).endsWith("/config/orders-value");
     assertThat(new JsonMapper().readTree(request.getBody().readUtf8()).get("compatibility").asText())
-        .isEqualTo("ICEBERG");
+        .isEqualTo("CUSTOM_MODE");
   }
 
   @Test
-  void sendsIcebergGlobalUpdate() throws Exception {
-    respond("{\"compatibility\":\"ICEBERG\"}");
-    service.updateGlobalSchemaCompatibility(cluster, Compatibility.ICEBERG).block(TIMEOUT);
+  void sendsCustomGlobalUpdate() throws Exception {
+    respond("{\"compatibility\":\"CUSTOM_MODE\"}");
+    service.updateGlobalSchemaCompatibility(cluster, "CUSTOM_MODE").block(TIMEOUT);
     var request = registry.takeRequest(5, TimeUnit.SECONDS);
     assertThat(request).isNotNull();
     assertThat(request.getMethod()).isEqualTo("PUT");
     assertThat(request.getPath()).endsWith("/config");
     assertThat(new JsonMapper().readTree(request.getBody().readUtf8()).get("compatibility").asText())
-        .isEqualTo("ICEBERG");
+        .isEqualTo("CUSTOM_MODE");
   }
 
   @Test
   void standardModesStillRoundTrip() {
-    for (var mode : Compatibility.values()) {
-      assertThat(mapper.fromDto(mapper.toDto(mode))).isEqualTo(mode);
-    }
     respond("{\"compatibilityLevel\":\"BACKWARD\"}");
     assertThat(service.getGlobalSchemaCompatibilityLevel(cluster).block(TIMEOUT))
-        .isEqualTo(Compatibility.BACKWARD);
+        .isEqualTo("BACKWARD");
   }
 }
