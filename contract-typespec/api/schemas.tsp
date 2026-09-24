@@ -166,6 +166,7 @@ model CompatibilityLevel {
     | "FORWARD_TRANSITIVE"
     | "FULL"
     | "FULL_TRANSITIVE"
+    | "ICEBERG"
     | "NONE";
 }
 

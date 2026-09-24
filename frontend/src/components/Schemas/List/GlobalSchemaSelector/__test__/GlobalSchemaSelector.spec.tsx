@@ -80,6 +80,18 @@ describe('GlobalSchemaSelector', () => {
     expectOptionIsSelected(CompatibilityLevelCompatibilityEnum.FULL);
   });
 
+  it('offers ICEBERG and submits it after confirmation', async () => {
+    const dropdown = screen.getByRole('listbox');
+    await userEvent.click(within(dropdown).getByRole('option'));
+    await userEvent.click(within(dropdown).getByText('ICEBERG'));
+    await userEvent.click(screen.getByRole('button', { name: 'Confirm' }));
+    await waitFor(() =>
+      expect(updateMockFn).toHaveBeenCalledWith({
+        compatibilityLevel: { compatibility: 'ICEBERG' },
+      })
+    );
+  });
+
   it('sets new schema when confirm is clicked', async () => {
     await selectForwardOption();
     await waitFor(() => {
